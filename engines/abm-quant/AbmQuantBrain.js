@@ -126,7 +126,7 @@ You will conduct a multistep process:
         } else if (originalResponse.parsed) {
             return this.processResponse(originalResponse.parsed);
         } else if (originalResponse.content) {
-            let parsedObj = {variables: [], relationships: []};
+            let parsedObj = {};
             try {
                 parsedObj = JSON.parse(originalResponse.content);
             } catch (err) {

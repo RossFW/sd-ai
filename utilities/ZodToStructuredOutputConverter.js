@@ -24,10 +24,15 @@ export class ZodToStructuredOutputConverter {
       case 'ZodOptional':
         const innerSchema = this.convert(zodSchema._def.innerType);
         return { ...innerSchema, nullable: true };
+      case 'ZodNullable':
+        const nullableInner = this.convert(zodSchema._def.innerType);
+        return { ...nullableInner, nullable: true };
       case 'ZodUnion':
         return this.convertZodUnionToStructuredOutput(zodSchema._def);
       case 'ZodLiteral':
         return this.convertZodLiteralToStructuredOutput(zodSchema._def);
+      case 'ZodDefault':
+        return this.convert(zodSchema._def.innerType);
       default:
         logger.warn(`Unsupported Zod type: ${zodType}`);
         return { type: 'string' };
@@ -127,6 +132,8 @@ export class ZodToStructuredOutputConverter {
       return schema;
     }
 
+
+    // Handle enum-like unions (literal1 | literal2 | ...)
     const enumValues = [];
     let allLiterals = true;
 
@@ -146,8 +153,15 @@ export class ZodToStructuredOutputConverter {
       };
     }
 
-    logger.warn('Complex union types not fully supported, defaulting to string');
-    return { type: 'string' };
+    // Handle unions of different object types using anyOf
+    const anyOf = options.map(opt => this.convert(opt));
+    const schema = { anyOf };
+
+    if (def.description) {
+      schema.description = def.description;
+    }
+
+    return schema;
   }
 
   convertZodLiteralToStructuredOutput(def) {

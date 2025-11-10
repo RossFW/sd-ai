@@ -268,6 +268,12 @@ export class LLMWrapper {
       "object",
     ]);
 
+    const ValueType = z.union([
+      z.string(),
+      z.number(),
+      z.boolean()
+    ]);
+
     const ExecutionMode = z.enum(["per-agent", "model-once", "model-batch"]);
 
     const CollectionLevel = z.enum(["model", "agent"]);
@@ -289,7 +295,7 @@ export class LLMWrapper {
       optional: z.boolean().default(false).describe(
         "Whether this parameter is optional. Optional parameters can be omitted when calling the function. Defaults to False (required)."
       ),
-      defaultValue: z.any().optional().nullable().describe(
+      defaultValue: ValueType.optional().nullable().describe(
         "Default value used when this optional parameter is not provided. Should only be set when optional=True."
       ),
     });
@@ -310,13 +316,13 @@ export class LLMWrapper {
       function: z.string().describe(
         "The name of the function to call. Must reference a function defined in globalFunctions, environmentBehaviors, or agentBehaviors."
       ),
-      args: z.array(z.any()).describe(
+      args: z.array(ValueType).describe(
         "Arguments to pass to the function. Values can be literals or references to globalVariables, environmentAttributes, agentAttributes, or other defined values in the schema."
       ),
     });
 
     // Type alias for values that can be literal or function-generated
-    const ValueOrFunction = z.union([z.any(), FunctionCall]);
+    const ValueOrFunction = z.union([ValueType, FunctionCall]);
 
     // ============================================================================
     // Global Functions Schema
@@ -324,17 +330,17 @@ export class LLMWrapper {
 
     const GlobalFunction = z.object({
       name: z.string().describe("The name of the global function."),
-      source_name: z.string().describe(
-        "The fully qualified source reference for this function (e.g., if the name is calculateDistance, then the source_name should be 'globalFunction.calculateDistance')."
+      sourceName: z.string().describe(
+        "The fully qualified source reference for this function (e.g., if the name is calculateDistance, then the sourceName should be 'globalFunction.calculateDistance')."
       ),
       functionDescription: z.string().describe(
         "A plain-language explanation of what the function does, without code. E.g., 'Computes distance between two points.'"
       ),
       functionInputs: z.array(FunctionInputParameter).optional().describe(
-        "An array of input parameters for this function. Each entry must include a name, description, type, and a source_name."
+        "An array of input parameters for this function. Each entry must include a name, description, type, and a sourceName."
       ),
       functionOutputs: z.array(FunctionOutputParameter).optional().describe(
-        "An array of output parameters returned by this function. Each entry must include a name, description, type, and a source_name."
+        "An array of output parameters returned by this function. Each entry must include a name, description, type, and a sourceName."
       ),
       executionMode: ExecutionMode.describe(
         "Execution mode determines how this function is invoked: 'per-agent' (run once for each agent instance), 'model-once' (run once in the model context), or 'model-batch' (run once with access to batch collections such as all agents)."
@@ -359,8 +365,8 @@ export class LLMWrapper {
       initialValue: ValueOrFunction.describe(
         "Initial value: can be a literal (5, 'hello', []), a framework attribute reference ('self.unique_id'), or a function call. Framework references are evaluated at runtime."
       ),
-      source_name: z.string().describe(
-        "The fully qualified source reference for this variable (e.g., if its name is population, then the source_name should be 'globalVariable.population')."
+      sourceName: z.string().describe(
+        "The fully qualified source reference for this variable (e.g., if its name is population, then the sourceName should be 'globalVariable.population')."
       ),
     });
 
@@ -391,8 +397,8 @@ export class LLMWrapper {
       initialValue: ValueOrFunction.describe(
         "Initial value: can be a literal (5, 'hello', []), a framework attribute reference ('self.unique_id'), or a function call. Framework references are evaluated at runtime."
       ),
-      source_name: z.string().describe(
-        "The fully qualified source reference for this attribute (e.g., if its name is temperature, then its source_name should be 'environment.environmentAttribute.temperature')."
+      sourceName: z.string().describe(
+        "The fully qualified source reference for this attribute (e.g., if its name is temperature, then its sourceName should be 'environment.environmentAttribute.temperature')."
       ),
     });
 
@@ -402,19 +408,19 @@ export class LLMWrapper {
         "A human-readable explanation of what this environment behavior does, without code. An environment behavior is a function that affects the environment or things related to the environment."
       ),
       inputs: z.array(FunctionInputParameter).optional().describe(
-        "An array describing the inputs required by this environment behavior. Each entry must include a name, description, a type, and a source_name."
+        "An array describing the inputs required by this environment behavior. Each entry must include a name, description, a type, and a sourceName."
       ),
       outputs: z.array(FunctionOutputParameter).optional().describe(
-        "An array describing the outputs produced by this behavior, with name, description, type, and a source_name."
+        "An array describing the outputs produced by this behavior, with name, description, type, and a sourceName."
       ),
       executionMode: ExecutionMode.describe(
         "Execution mode determines how this behavior is invoked: 'per-agent' (run once for each agent instance), 'model-once' (run once in the model context), or 'model-batch' (run once with access to batch collections such as all agents)."
       ),
       code: z.string().describe(
-        "The complete function/method implementation in the codingLanguage. Should be a full function definition including signature, docstring, and body. For Python: 'def behavior_name(self):\\n    \"\"\"Docstring.\"\"\"\\n    # implementation'. Must reference only source_name of variables and functions."
+        "The complete function/method implementation in the codingLanguage. Should be a full function definition including signature, docstring, and body. For Python: 'def behavior_name(self):\\n    \"\"\"Docstring.\"\"\"\\n    # implementation'. Must reference only sourceName of variables and functions."
       ),
-      source_name: z.string().describe(
-        "The fully qualified source reference for this behavior (e.g., if its name is updateTemperature, then the source_name should be 'environment.environmentBehavior.updateTemperature')."
+      sourceName: z.string().describe(
+        "The fully qualified source reference for this behavior (e.g., if its name is updateTemperature, then the sourceName should be 'environment.environmentBehavior.updateTemperature')."
       ),
     });
 
@@ -428,10 +434,10 @@ export class LLMWrapper {
       topology: Topology.describe(
         "Defines the spatial or logical structure of the environment (none, grid, or network)."
       ),
-      environmentAttributes: z.record(z.string(), EnvironmentAttribute).optional().describe(
+      environmentAttributes: z.array(EnvironmentAttribute).optional().describe(
         "A dictionary of world-level properties. Each attribute includes description, type, and an initial value or generator. An environment attribute is a property of the environment."
       ),
-      environmentBehaviors: z.record(z.string(), EnvironmentBehavior).optional().describe(
+      environmentBehaviors: z.array(EnvironmentBehavior).optional().describe(
         "A dictionary of functions that affect the environment itself. Each behavior acts at the environment level."
       ),
     });
@@ -451,8 +457,8 @@ export class LLMWrapper {
       initialValue: ValueOrFunction.describe(
         "Initial value: can be a literal (5, 'hello', []), a framework attribute reference ('self.unique_id'), or a function call. Framework references are evaluated at runtime."
       ),
-      source_name: z.string().describe(
-        "The fully qualified source reference for this attribute (e.g., 'agent.Person.agentAttribute.health'). For example, if its name is health for an ant agent, then the source_name should be 'agent.ant.agentAttribute.health'."
+      sourceName: z.string().describe(
+        "The fully qualified source reference for this attribute (e.g., 'agent.Person.agentAttribute.health'). For example, if its name is health for an ant agent, then the sourceName should be 'agent.ant.agentAttribute.health'."
       ),
     });
 
@@ -462,30 +468,30 @@ export class LLMWrapper {
         "A human-readable explanation of what this agent behavior does, without code. An agent behavior is a function that affects the agent or things related to the agent."
       ),
       inputs: z.array(FunctionInputParameter).optional().describe(
-        "An array describing inputs required by this behavior; each entry has a name (used in the function signature), description, type, and a source_name."
+        "An array describing inputs required by this behavior; each entry has a name (used in the function signature), description, type, and a sourceName."
       ),
       outputs: z.array(FunctionOutputParameter).optional().describe(
-        "An array describing outputs produced by this behavior; each entry has a name (used in the function signature), description, type, and a source_name."
+        "An array describing outputs produced by this behavior; each entry has a name (used in the function signature), description, type, and a sourceName."
       ),
       executionMode: ExecutionMode.describe(
         "Execution mode determines how this behavior is invoked: 'per-agent' (run once for each agent instance), 'model-once' (run once in the model context), or 'model-batch' (run once with access to batch collections such as all agents)."
       ),
-      source_name: z.string().describe(
-        "The fully qualified source reference for this behavior (e.g., 'agent.Person.agentBehavior.move'). If its name is walk for an ant agent, then the source_name should be 'agent.ant.agentBehavior.walk'."
+      sourceName: z.string().describe(
+        "The fully qualified source reference for this behavior (e.g., 'agent.Person.agentBehavior.move'). If its name is walk for an ant agent, then the sourceName should be 'agent.ant.agentBehavior.walk'."
       ),
       code: z.string().describe(
-        "The complete method implementation in the codingLanguage. Should be a full method definition including signature, docstring, and body. For Python: 'def behavior_name(self):\\n    \"\"\"Docstring.\"\"\"\\n    # implementation'. Must reference only source_name of variables and functions."
+        "The complete method implementation in the codingLanguage. Should be a full method definition including signature, docstring, and body. For Python: 'def behavior_name(self):\\n    \"\"\"Docstring.\"\"\"\\n    # implementation'. Must reference only sourceName of variables and functions."
       ),
     });
 
     const Agent = z.object({
-      agentAttributes: z.record(z.string(), AgentAttribute).describe(
-        "A dictionary of properties unique to this agent type. Each attribute has its own name, description, type, initial value, and source_name."
+      agentAttributes: z.array(AgentAttribute).describe(
+        "A dictionary of properties unique to this agent type. Each attribute has its own name, description, type, initial value, and sourceName."
       ),
       initialCount: ValueOrFunction.describe(
         "The number of agents of this type at initialization. Can be: (1) an integer literal (e.g., 100), (2) a string reference to a variable (e.g., 'globalVariable.population'), or (3) generated by a function call."
       ),
-      agentBehaviors: z.record(z.string(), AgentBehavior).optional().describe(
+      agentBehaviors: z.array(AgentBehavior).optional().describe(
         "A dictionary of behaviors specific to this agent type. Each behavior is a function that affects the agent or things related to the agent."
       ),
     });
@@ -505,7 +511,7 @@ export class LLMWrapper {
     });
 
     const TerminationCriteria = z.object({
-      terminationRules: z.record(z.string(), TerminationRule).optional().describe(
+      terminationRules: z.array(TerminationRule).optional().describe(
         "Dictionary of termination rules. Each key references a variable (e.g., 'globalVariable.population', 'environment.environmentAttribute.temperature'), and the simulation ends when that variable equals the specified value."
       ),
       maxSteps: z.number().int().positive().describe(
@@ -518,8 +524,8 @@ export class LLMWrapper {
     // ============================================================================
 
     const InitializationOrderItem = z.object({
-      source_name: z.string().describe(
-        "The fully qualified source_name for this item (e.g., 'globalVariable.population', 'agent.Person.initialCount'). This clarifies exactly what is being initialized."
+      sourceName: z.string().describe(
+        "The fully qualified sourceName for this item (e.g., 'globalVariable.population', 'agent.Person.initialCount'). This clarifies exactly what is being initialized."
       ),
       type: z.enum([
         "agentAttribute",
@@ -545,8 +551,8 @@ export class LLMWrapper {
     });
 
     const ScheduleOrderItem = z.object({
-      source_name: z.string().describe(
-        "The fully qualified source_name for this item (e.g., 'agent.Person.agentBehavior.move', 'environment.environmentBehavior.updateTemperature', 'globalFunction.calculateStats'). This clarifies exactly what is being executed."
+      sourceName: z.string().describe(
+        "The fully qualified sourceName for this item (e.g., 'agent.Person.agentBehavior.move', 'environment.environmentBehavior.updateTemperature', 'globalFunction.calculateStats'). This clarifies exactly what is being executed."
       ),
       type: z.enum(["agentBehavior", "environmentBehavior", "globalFunction"]).describe(
         "The type of item being run (agentBehavior, environmentBehavior, or globalFunction)."
@@ -582,13 +588,13 @@ export class LLMWrapper {
       description: z.string().describe(
         "A human-readable summary of why this variable is tracked and what insights it provides."
       ),
-      source_name: z.string().describe(
-        "The fully qualified source_name of the global variable, environmental attribute, or agent attribute being tracked (e.g., 'globalVariable.population', 'environment.environmentAttribute.temperature', 'agent.Person.agentAttribute.health')."
+      sourceName: z.string().describe(
+        "The fully qualified sourceName of the global variable, environmental attribute, or agent attribute being tracked (e.g., 'globalVariable.population', 'environment.environmentAttribute.temperature', 'agent.Person.agentAttribute.health')."
       ),
       collectionLevel: CollectionLevel.describe(
-        "Specifies whether this variable is collected at the 'model' level (once per step, for global/environment variables) or 'agent' level (once per agent per step). Must match source_name pattern: 'globalVariable.*' and 'environment.*' require 'model', 'agent.*' requires 'agent'."
+        "Specifies whether this variable is collected at the 'model' level (once per step, for global/environment variables) or 'agent' level (once per agent per step). Must match sourceName pattern: 'globalVariable.*' and 'environment.*' require 'model', 'agent.*' requires 'agent'."
       ),
-      check_time: z.enum(["start-of-step", "end-of-step"]).describe(
+      checkTime: z.enum(["start-of-step", "end-of-step"]).describe(
         "When during the simulation step to check/track this variable. 'start-of-step' records the value before any behaviors run, 'end-of-step' records the value after all behaviors complete."
       ),
     });
@@ -623,32 +629,37 @@ export class LLMWrapper {
       abmLibrary: LibraryConfiguration.optional().describe(
         "Configuration for the ABM library/framework to use for implementation (optional). Specifies the library name and optionally its version. If omitted, only generic language code (without library-specific patterns) is expected.When specified, library-specific code patterns are allowed in code fields.The library must be compatible with the specified codingLanguage."
       ),
-      globalFunctions: z.record(z.string(), GlobalFunction).optional().describe(
-        "Section containing reusable helper functions that are not tied to agents or the environment. Use these to initialize or compute values across the simulation."
-      ),
-      globalVariables: z.record(z.string(), GlobalVariable).optional().describe(
-        "Variables accessible from anywhere in the model. Each must include a description, type, source_name, and initialValue or function to generate the initial value."
-      ),
       environment: Environment.describe(
         "Defines the overall world in which agents operate, including topology, environment-level attributes, and environment behaviors (functions that affect the environment itself)."
       ),
-      agents: z.array(z.record(z.string(), Agent)).describe(
+      globalFunctions: z.array(GlobalFunction).optional().describe(
+        "Section containing reusable helper functions that are not tied to agents or the environment. Use these to initialize or compute values across the simulation."
+      ),
+      globalVariables: z.array(GlobalVariable).optional().describe(
+        "Variables accessible from anywhere in the model. Each must include a description, type, sourceName, and initialValue or function to generate the initial value."
+      ),
+      
+      agents: z.array(z.array(Agent)).describe(
         "An array describing each type of agent in the simulation. Each agent type defines its own attributes, behaviors, and initial count."
       ),
       terminationCriteria: TerminationCriteria.describe(
-        "Defines the conditions that terminate the simulation. Each key references a variable via source_name. The simulation ends when the condition is met. maxSteps serves as a fallback."
+        "Defines the conditions that terminate the simulation. Each key references a variable via sourceName. The simulation ends when the condition is met. maxSteps serves as a fallback."
       ),
       scheduler: Scheduler.describe(
         "Controls the order and logic for initialization and the recurring schedule of agent and environment behavior execution."
       ),
       dataAnalytics: DataAnalytics.optional().describe(
         "Specifies which variables or metrics should be tracked and recorded for analysis."
-      ),
+      )
+    });
+
+    const Model = z.object({
+      model: ABMJsonSchema,
       explanation: z.string().describe(LLMWrapper.SCHEMA_STRINGS.abmExplanation),
       title: z.string().describe(LLMWrapper.SCHEMA_STRINGS.title),
     });
-    return ABMJsonSchema;
-    }
+    return Model;
+  }
   generateQuantitativeSDJSONResponseSchema(mentorMode) {
       const TypeEnum = z.enum(["stock", "flow", "variable"]).describe(LLMWrapper.SCHEMA_STRINGS.type);
       const PolarityEnum = z.enum(["+", "-"]).describe(LLMWrapper.SCHEMA_STRINGS.polarity);
