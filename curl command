@@ -1,0 +1,4 @@
+curl -X POST http://localhost:3001/api/v1/engines/abm-quant/generate -H "Content-Type: application/json" -d '{"prompt":"write me an SIR abm network model using python and mesa."}'
+
+
+curl -X POST http://localhost:3001/api/v1/engines/abm-quant/generate -H "Content-Type: application/json" -d '{"prompt":"write me an SIR abm network model using python and mesa.","underlyingModel":"gpt-5","openAIKey":"YOUR_API_KEY_HERE"}'

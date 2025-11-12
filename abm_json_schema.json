@@ -1,0 +1,145 @@
+codingLanguage: <string>,
+abmLibrary?{
+  name: <string>,
+  version?: <string>,
+},
+globalFunctions?: {
+  <functionName>: {
+    source_name: <string>,
+    functionDescription: <string>,
+    functionInputs?: [{
+      description: <string>,
+      type: <string - integer|float|number|string|boolean|array|object>
+      optional: <boolean>
+      defaultValue?: <any>
+    }],
+    functionOutputs?: [{
+      description: <string>,
+      type: <string - integer|float|number|string|boolean|array|object>
+    }],
+    executionMode: <string - per-agent|model-once|model-batch>       # per-agent: run once for each agent instance # model-once: run once in model context # model-batch: run once with batch collections (e.g., all agents)
+
+    code: <string>
+  }
+},
+
+globalVariables?: {
+  <variableName>: {
+    description: <string>,
+    type: <string - integer|float|number|string|boolean|array|object>,
+    initialValue: <any> | { function: <string>, args: [<any>] }
+    source_name: <string>,
+  }
+},
+
+environment: {
+  name: <string>,
+  description: <string>,
+  topology: {
+    description: <string>,
+    type: <string - none|grid|network>,
+    #comments can just be enviromentAttributes parameters?: <object>,
+    boundaryConditions?: <string - fixed|torus>
+  },
+  environmentAttributes?: {
+    <environmentAttributeName>: {
+      description: <string>,
+      type: <string - integer|float|number|string|boolean|array|object>,
+      initialValue: <any> | { function: <string>, args: [<any>] }
+      source_name: <string>,
+    }
+  },
+  environmentBehaviors?: {
+    <environmentBehaviorName>: {
+      source_name: <string>,
+      description: <string>,
+      inputs?: [{
+        source_name: <string>,
+        description: <string>,
+        type: <string - integer|float|number|string|boolean|array|object>
+      }],
+      outputs?: [{
+        source_name: <string>,
+        description: <string>,
+        type: <string - integer|float|number|string|boolean|array|object>
+      }],
+      executionMode: <string - per-agent|model-once|model-batch>
+      code: <string>
+    }
+  }
+},
+
+agents: [{
+  <agentType> {
+    agentAttributes: {
+      <attribute_name>: {
+        description: <string>,
+        type: <string - integer|float|number|string|boolean|array|object>,
+        initialValue: <any> | { function: <string>, args: [<any>] }
+        source_name: <string>,
+      }
+    },
+    initialCount: <integer|string> | { function: <string>, args: [<any>] },
+    agentBehaviors?: {
+      <agentBehaviorName>: {
+        source_name: <string>,
+        description: <string>,
+        inputs?: [{
+          source_name: <string>,
+          description: <string>,
+          type: <string - integer|float|number|string|boolean|array|object>
+        }],
+        outputs?: [{
+          source_name: <string>,
+          description: <string>,
+          type: <string - integer|float|number|string|boolean|array|object>
+        }],
+        executionMode: <string - per-agent|model-once|model-batch>
+        source_name: <string>,
+        code: <string>
+      }
+    }
+  }
+}],
+
+terminationCriteria: {
+  terminationRules?: {
+    <terminationRuleName>: { $comment: source_name: <string>,
+      description: <string>,
+      type: <string>,
+      value: <any> | { function: <string>, args: [<any>] }
+      source_name: <string>,
+    }
+  },
+  maxSteps: <integer>
+}
+
+scheduler: {
+  initialization: {
+    description: <string>,
+    initializationOrder: [{
+      source_name: <string - agentAttribute|environmentAttribute|globalVariable|globalFunction>,  $global function not implemented in schema.py
+      type: <string - agentAttribute|environmentAttribute|globalVariable|globalFunction>, $global function to create agents
+      orderInInitialization: <integer>,
+      }]
+    },
+  schedule:{
+    description: <string>,
+    scheduleOrder: [{
+      source_name: <string - agentBehavior|environmentBehavior|globalFunction>,
+      type: <string - agentBehavior|environmentBehavior|globalFunction>,
+      orderInSchedule: <integer>
+    }]
+  },
+}
+
+
+dataAnalytics?: {
+  trackedVariables?: [{
+    description: <string>
+    source_name: <string>,
+    collectionLevel: <string - model|agent>  # model: collect once per step (global/env vars), agent: collect per agent per step
+    check_time: <string - start-of-step|end-of-step>
+  }]
+}
+

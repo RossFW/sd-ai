@@ -501,18 +501,21 @@ export class LLMWrapper {
     // ============================================================================
 
     const TerminationRule = z.object({
+      sourceName: z.string().describe(
+        "The sourceName of the variable/attribute being monitored (e.g., 'globalVariable.population', 'environment.environmentAttribute.temperature', 'agent.Person.agentAttribute.health'). This must reference a defined globalVariable, environmentAttribute, or agentAttribute."
+      ),
       description: z.string().describe(
         "A plain-language explanation of what this termination rule monitors and why it ends the simulation."
       ),
       type: z.string().describe(
         "The data type of the end condition's value (integer, float, boolean, etc.)."
       ),
-      value: ValueOrFunction.describe("The target value that triggers termination."),
+      value: ValueOrFunction.describe("The target value that triggers termination. The simulation ends when the variable referenced by sourceName equals this value."),
     });
 
     const TerminationCriteria = z.object({
       terminationRules: z.array(TerminationRule).optional().describe(
-        "Dictionary of termination rules. Each key references a variable (e.g., 'globalVariable.population', 'environment.environmentAttribute.temperature'), and the simulation ends when that variable equals the specified value."
+        "Array of termination rules. Each rule has a sourceName that references the variable/attribute being monitored, and a value that represents the target condition. The simulation ends when any rule's condition is met (i.e., when the variable referenced by sourceName equals the specified value)."
       ),
       maxSteps: z.number().int().positive().describe(
         "A fallback limit on the number of simulation steps. If no termination rule is met, the simulation stops when maxSteps is reached."
@@ -629,16 +632,15 @@ export class LLMWrapper {
       abmLibrary: LibraryConfiguration.optional().describe(
         "Configuration for the ABM library/framework to use for implementation (optional). Specifies the library name and optionally its version. If omitted, only generic language code (without library-specific patterns) is expected.When specified, library-specific code patterns are allowed in code fields.The library must be compatible with the specified codingLanguage."
       ),
-      environment: Environment.describe(
-        "Defines the overall world in which agents operate, including topology, environment-level attributes, and environment behaviors (functions that affect the environment itself)."
-      ),
       globalFunctions: z.array(GlobalFunction).optional().describe(
         "Section containing reusable helper functions that are not tied to agents or the environment. Use these to initialize or compute values across the simulation."
       ),
       globalVariables: z.array(GlobalVariable).optional().describe(
         "Variables accessible from anywhere in the model. Each must include a description, type, sourceName, and initialValue or function to generate the initial value."
       ),
-      
+      environment: Environment.describe(
+        "Defines the overall world in which agents operate, including topology, environment-level attributes, and environment behaviors (functions that affect the environment itself)."
+      ),
       agents: z.array(z.array(Agent)).describe(
         "An array describing each type of agent in the simulation. Each agent type defines its own attributes, behaviors, and initial count."
       ),
